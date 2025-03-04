@@ -12,30 +12,30 @@ public class Board {
     private final int manhattan;
 
     public Board(int[][] tiles) {
-        // construct a board from an n-by-n array of tiles
-        // (where tiles[i][j] = tile at row i, column j)
         n = tiles.length;
         this.tiles = new int[n][n];
+
+        // Deep copy for immutability
         for (int i = 0; i < n; i++) {
-            // using arraycopy because intellij keeps bugging me about it ;D
             System.arraycopy(tiles[i], 0, this.tiles[i], 0, n);
         }
 
-        // Calculate Hamming and Manhattan distances in constructor
-        hamming = calculateHamming();
-        manhattan = calculateManhattan();
+        // Calculate Hamming and Manhattan distances ONCE in the constructor -- thanks Alex for the request
+        this.hamming = calculateHamming();
+        this.manhattan = calculateManhattan();
     }
 
     public int dimension() {
-        // board dimension n
-        return n;
+        return n; // O(1)
     }
 
+    // Hamming distance: Number of tiles out of place
     private int calculateHamming() {
         int count = 0;
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
-                if (tiles[i][j] != 0 && tiles[i][j] != i * n + j + 1) {
+                // Avoid comparing the blank tile (0)
+                if (tiles[i][j] != 0 && tiles[i][j] != (i * n) + j + 1) {
                     count++;
                 }
             }
@@ -44,18 +44,18 @@ public class Board {
     }
 
     public int hamming() {
-        // number of tiles out of place
         return hamming;
     }
 
-
+    // Manhattan distance: Sum of distances to goal positions
     private int calculateManhattan() {
         int sum = 0;
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
-                if (tiles[i][j] != 0) {
-                    int goalRow = (tiles[i][j] - 1) / n;
-                    int goalCol = (tiles[i][j] - 1) % n;
+                int value = tiles[i][j];
+                if (value != 0) { // Avoid calculating for the blank tile
+                    int goalRow = (value - 1) / n;
+                    int goalCol = (value - 1) % n;
                     sum += Math.abs(i - goalRow) + Math.abs(j - goalCol);
                 }
             }
@@ -64,11 +64,10 @@ public class Board {
     }
 
     public int manhattan() {
-        // sum of Manhattan distances between tiles and goal
         return manhattan;
     }
+
     public String toString() {
-        // string representation of this board
         StringBuilder s = new StringBuilder();
         s.append(n).append("\n");
         for (int i = 0; i < n; i++) {
@@ -79,71 +78,59 @@ public class Board {
         }
         return s.toString();
     }
-
+    @Override
     public boolean equals(Object other) {
-        // does this board equal y?
-        if (other == this) return true;
-        if (other == null) return false;
-        if (other.getClass() != this.getClass()) return false;
-
-        Board that = (Board) other;
-        return Arrays.deepEquals(this.tiles, that.tiles);
+        if (this == other) return true;
+        if (other == null || getClass() != other.getClass()) return false;
+        Board board = (Board) other;
+        return Arrays.deepEquals(tiles, board.tiles);
     }
 
     public Board twin() {
-        // a board that is obtained by exchanging any pair of tiles
         int[][] twinTiles = new int[n][n];
         for (int i = 0; i < n; i++) {
             System.arraycopy(tiles[i], 0, twinTiles[i], 0, n);
         }
 
-        // Find two non-zero tiles to swap
-        int row1 = -1, col1 = -1, row2, col2;
+        // what is this???? IntelliJ recommended me this refactoring and I don't know what I'm looking at
+        outerLoop:
         for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                if (twinTiles[i][j] != 0) {
-                    if (row1 == -1) {
-                        row1 = i;
-                        col1 = j;
-                    } else {
-                        row2 = i;
-                        col2 = j;
-                        // Swap the tiles
-                        int temp = twinTiles[row1][col1];
-                        twinTiles[row1][col1] = twinTiles[row2][col2];
-                        twinTiles[row2][col2] = temp;
-                        return new Board(twinTiles);  // Return immediately after swapping
-                    }
+            for (int j = 0; j < n - 1; j++) {
+                if (twinTiles[i][j] != 0 && twinTiles[i][j + 1] != 0) {
+                    // Swap the tiles
+                    int temp = twinTiles[i][j];
+                    twinTiles[i][j] = twinTiles[i][j + 1];
+                    twinTiles[i][j + 1] = temp;
+                    break outerLoop;
                 }
             }
         }
-        return new Board(twinTiles); //Should never reach here given valid inputs
+        return new Board(twinTiles);
     }
 
+
     public boolean isGoal() {
-        // is this board the goal board?
         return hamming == 0;
     }
 
     public Iterable<Board> neighbors() {
-        // all neighboring boards
         ArrayList<Board> neighbors = new ArrayList<>();
-        int zeroRow = -1;
-        int zeroCol = -1;
+        int zeroRow = -1, zeroCol = -1;
 
-        // Find the blank square
+        outerLoop:
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 if (tiles[i][j] == 0) {
                     zeroRow = i;
                     zeroCol = j;
-                    break;
+                    break outerLoop;
                 }
             }
         }
 
-        // Generate neighbors by swapping the blank square with adjacent tiles
-        int[][] moves = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // Up, Down, Left, Right
+        // Possible moves (up, down, left, right)
+        int[][] moves = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
         for (int[] move : moves) {
             int newRow = zeroRow + move[0];
             int newCol = zeroCol + move[1];
@@ -153,12 +140,13 @@ public class Board {
                 for (int i = 0; i < n; i++) {
                     System.arraycopy(tiles[i], 0, neighborTiles[i], 0, n);
                 }
-                // Swap blank square
+
                 neighborTiles[zeroRow][zeroCol] = neighborTiles[newRow][newCol];
                 neighborTiles[newRow][newCol] = 0;
                 neighbors.add(new Board(neighborTiles));
             }
         }
+
         return neighbors;
     }
 
