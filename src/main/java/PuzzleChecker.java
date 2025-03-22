@@ -1,4 +1,4 @@
-/******************************************************************************
+/*
  *  This program creates an initial board from each filename specified
  *  on the command line and finds the minimum number of moves to
  *  reach the goal state.
@@ -18,7 +18,7 @@
  *  puzzle43.txt: 43
  *  puzzle44.txt: 44
  *  puzzle45.txt: 45
- ******************************************************************************/
+ */
 
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.StdOut;
