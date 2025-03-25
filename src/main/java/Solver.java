@@ -16,7 +16,7 @@ import edu.princeton.cs.algs4.StdOut;
 public class Solver {
 	// you will need to add a class for search nodes,
 	// and a MinPQ to store them in as you solve
-	Thread thisSolver, twinSolver;
+	Thread thisThread, thisSolver, twinSolver;
 	AtomicReference<ThreadState> thisState, twinState;
 	Stack<Board> thisSolution, twinSolution;
 
@@ -28,10 +28,18 @@ public class Solver {
 
 
 	public Solver(Board initial) {
+		thisThread = Thread.currentThread();
 		thisSolver = new Thread() {
 			@Override
 			public void run() {
+				//try {
+				//	thisThread.wait();
+				//} catch (InterruptedException e) {
+				//	// TODO Auto-generated catch block
+				//	e.printStackTrace();
+				//}
 				thisSolution = solve(initial, thisState, twinState);
+				//thisThread.notify();
 			}
 		};
 
@@ -44,8 +52,16 @@ public class Solver {
 		thisState = new AtomicReference<Solver.ThreadState>(ThreadState.Running);
 		twinState = new AtomicReference<Solver.ThreadState>(ThreadState.Running);
 
-		thisSolver.run();
-		twinSolver.run();
+		twinSolver.start();
+		thisSolver.start();
+
+		try {
+			thisSolver.join();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		// find a solution to the initial board (using the A* algorithm)
 	}
 
@@ -65,7 +81,11 @@ public class Solver {
 		// solve a slider puzzle (given below)
 	}
 
-	private Stack<Board> solve(Board initial, AtomicReference<ThreadState> thisState, AtomicReference<ThreadState> otherState) {
+	private Stack<Board> solve(
+			Board initial,
+			AtomicReference<ThreadState> thisState,
+			AtomicReference<ThreadState> otherState) {
+
 		MinPQ<SearchNode> priorityQueue;
 		priorityQueue = new MinPQ<>();
 
@@ -99,7 +119,7 @@ public class Solver {
 
 
 		return null;
-	}
+			}
 
 	private Stack<Board> makeList(Solver.SearchNode current) {
 		SearchNode currentNode = current;
