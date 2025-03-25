@@ -1,16 +1,6 @@
 import edu.princeton.cs.algs4.MinPQ;
-import edu.princeton.cs.algs4.Queue;
-
-import java.awt.List;
-import java.lang.Thread.State;
-import java.util.ArrayList;
 import java.util.Stack;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicReference;
-
-import edu.princeton.cs.algs4.In;
-import edu.princeton.cs.algs4.StdOut;
 
 // Alex's Part
 public class Solver {
@@ -32,14 +22,7 @@ public class Solver {
 		thisSolver = new Thread() {
 			@Override
 			public void run() {
-				//try {
-				//	thisThread.wait();
-				//} catch (InterruptedException e) {
-				//	// TODO Auto-generated catch block
-				//	e.printStackTrace();
-				//}
 				thisSolution = solve(initial, thisState, twinState);
-				//thisThread.notify();
 			}
 		};
 
@@ -56,13 +39,10 @@ public class Solver {
 		thisSolver.start();
 
 		try {
-			thisSolver.join();
+			thisSolver.join(); // make sure we are finished solving
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
-		// find a solution to the initial board (using the A* algorithm)
 	}
 
 	public boolean isSolvable() {
@@ -81,10 +61,7 @@ public class Solver {
 		// solve a slider puzzle (given below)
 	}
 
-	private Stack<Board> solve(
-			Board initial,
-			AtomicReference<ThreadState> thisState,
-			AtomicReference<ThreadState> otherState) {
+	private Stack<Board> solve(Board initial, AtomicReference<ThreadState> thisState, AtomicReference<ThreadState> otherState) {
 
 		MinPQ<SearchNode> priorityQueue;
 		priorityQueue = new MinPQ<>();
@@ -117,9 +94,8 @@ public class Solver {
 			}
 		}
 
-
 		return null;
-			}
+	}
 
 	private Stack<Board> makeList(Solver.SearchNode current) {
 		SearchNode currentNode = current;
