@@ -1,9 +1,13 @@
 import edu.princeton.cs.algs4.MinPQ;
+import edu.princeton.cs.algs4.Queue;
 
 import java.awt.List;
+import java.lang.Thread.State;
 import java.util.ArrayList;
 import java.util.Stack;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TransferQueue;
+import java.util.concurrent.atomic.AtomicReference;
 
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.StdOut;
@@ -12,46 +16,73 @@ import edu.princeton.cs.algs4.StdOut;
 public class Solver {
 	// you will need to add a class for search nodes,
 	// and a MinPQ to store them in as you solve
-	MinPQ<SearchNode> priorityQueue;
-	Stack<Board> solution;
+	Thread thisSolver, twinSolver;
+	AtomicReference<ThreadState> thisState, twinState;
+	Stack<Board> thisSolution, twinSolution;
+
+	enum ThreadState { // very rust thing to do here
+		Solved,
+		Running,
+		Unsolvable
+	}
 
 
 	public Solver(Board initial) {
-		priorityQueue = new MinPQ<>();
-		solution = solve(initial);
+		thisSolver = new Thread() {
+			@Override
+			public void run() {
+				thisSolution = solve(initial, thisState, twinState);
+			}
+		};
+
+		twinSolver = new Thread() {
+			@Override
+			public void run() {
+				twinSolution = solve(initial.twin(), twinState, thisState);
+			}
+		};
+		thisState = new AtomicReference<Solver.ThreadState>(ThreadState.Running);
+		twinState = new AtomicReference<Solver.ThreadState>(ThreadState.Running);
+
+		thisSolver.run();
+		twinSolver.run();
 		// find a solution to the initial board (using the A* algorithm)
 	}
 
 	public boolean isSolvable() {
-		return solution != null;
+		return thisSolution != null;
 	}
 
 	public int moves() {
-		return solution == null ? -1 : solution.size();
+		return thisSolution == null ? -1 : thisSolution.size();
 	}
 
 	public Iterable<Board> solution() {
-		return solution;
+		return thisSolution;
 	}
 
 	public static void main(String[] args) {
 		// solve a slider puzzle (given below)
 	}
 
-	private Stack<Board> solve(Board inital) {
+	private Stack<Board> solve(Board initial, AtomicReference<ThreadState> thisState, AtomicReference<ThreadState> otherState) {
+		MinPQ<SearchNode> priorityQueue;
+		priorityQueue = new MinPQ<>();
 
-		if (inital.isGoal()) {
-			return makeList(new SearchNode(inital, null, 0));
+		if (initial.isGoal()) {
+			thisState.set(ThreadState.Solved);
+			return makeList(new SearchNode(initial, null, 0));
 		}
 
-		for (Board board : inital.neighbors()) { // kinda messy
-			priorityQueue.insert(new SearchNode(board, new SearchNode(inital, null, 0), 1));
+		for (Board board : initial.neighbors()) { // kinda messy
+			priorityQueue.insert(new SearchNode(board, new SearchNode(initial, null, 0), 1));
 		}
 
 		while (priorityQueue.size() != 0) {
 			SearchNode current = priorityQueue.delMin();
 
 			if (current.board.isGoal()) {
+				thisState.set(ThreadState.Solved);
 				return makeList(current);
 			}
 
@@ -59,7 +90,13 @@ public class Solver {
 				if (!board.equals(current.prevNode.board))
 					priorityQueue.insert(new SearchNode(board, current, current.steps + 1));
 			}
+
+			if (otherState.get() == ThreadState.Solved) {
+				thisState.set(ThreadState.Unsolvable);
+				return null;
+			}
 		}
+
 
 		return null;
 	}

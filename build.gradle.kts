@@ -1,5 +1,6 @@
 plugins {
     id("java")
+	// id("Application")
 }
 
 group = "org.example"
@@ -20,3 +21,7 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
+
+// application {
+// 	mainClass = "PuzzleChecker"
+// }
